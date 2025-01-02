@@ -1,4 +1,5 @@
 export interface YarnInventory {
+    id?: string;
     brand: string;
     name: string;
     color: string;

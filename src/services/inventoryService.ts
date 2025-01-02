@@ -1,4 +1,4 @@
-import { doc, updateDoc, arrayUnion, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, addDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import { YarnInventory } from '@/models/YarnInventory';
 import { YarnPurchase } from '@/models/YarnPurchase';
@@ -6,17 +6,23 @@ import { YarnPurchase } from '@/models/YarnPurchase';
 /**
  * Add a new yarn to the inventory collection.
  */
-export const addYarnToInventory = async (yarn: YarnInventory) => {
+export const addYarnToInventory = async (yarn: Omit<YarnInventory, "id">): Promise<YarnInventory> => {
     try {
         console.log("Submitting Yarn Data:", yarn);
-        // Add the yarn to the Firestore `yarn_inventory` collection
+
+        // Add the yarn to Firestore without an ID initially
         const docRef = await addDoc(collection(db, "yarn_inventory"), yarn);
 
-        console.log("Yarn added with ID: ", docRef.id);
-        return docRef; // Return the reference for further operations
+        // Update the yarn document with the generated ID
+        const id = docRef.id;
+        await updateDoc(docRef, { id });
+
+        console.log("Yarn added with ID: ", id);
+
+        return { ...yarn, id }; // Return the updated yarn object with ID
     } catch (error) {
         console.error("Error adding yarn to inventory: ", error);
-        throw error; // Rethrow the error for the calling code to handle
+        throw error;
     }
 };
 
@@ -47,5 +53,25 @@ export const addPurchaseAndLink = async (
         console.log("Purchase linked successfully with ID:", purchaseId);
     } catch (error) {
         console.error("Error in addPurchaseAndLink:", error);
+    }
+};
+
+/**
+ * Fetch all yarns from the yarn_inventory collection
+ */
+export const fetchYarnInventory = async (): Promise<YarnInventory[]> => {
+    try {
+        const yarnCollection = collection(db, "yarn_inventory");
+        const yarnSnapshot = await getDocs(yarnCollection);
+
+        const yarns = yarnSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(), // Ensure this includes all required fields of YarnInventory
+        })) as YarnInventory[]; // Use type assertion if you're confident in the structure
+
+        return yarns;
+    } catch (error) {
+        console.error("Error fetching yarn inventory: ", error);
+        throw error;
     }
 };

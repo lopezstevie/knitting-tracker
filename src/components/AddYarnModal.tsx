@@ -1,8 +1,16 @@
 import React from "react";
-import { Modal, Box, Typography } from "@mui/material";
+import { Modal, Box } from "@mui/material";
 import AddYarnForm from "./AddYarnForm";
 
-const AddYarnModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const AddYarnModal = ({ 
+    open,
+    onClose,
+    onYarnAdded
+}: {
+    open: boolean;
+    onClose: () => void
+    onYarnAdded: () => void;
+}) => {
     return (
         <Modal open={open} onClose={onClose}>
             <Box
@@ -41,7 +49,7 @@ const AddYarnModal = ({ open, onClose }: { open: boolean; onClose: () => void })
                         },
                     }}
                 >
-                    <AddYarnForm onClose={onClose} />
+                    <AddYarnForm onClose={onClose} onYarnAdded={onYarnAdded} />
                 </Box>
             </Box>
         </Modal>

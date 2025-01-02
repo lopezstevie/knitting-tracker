@@ -9,9 +9,17 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { addYarnToInventory, addPurchaseAndLink } from "@/services/inventoryService";
+import { YarnPurchase } from "@/models/YarnPurchase";
 
-const AddYarnForm = ({ onClose }: { onClose: () => void }) => {
+const AddYarnForm = ({ 
+    onClose,
+    onYarnAdded,
+}: { 
+    onClose: () => void;
+    onYarnAdded: () => void;
+}) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [fiberError, setFiberError] = useState<string | null>(null);
 
     const [yarnData, setYarnData] = useState({
         brand: "",
@@ -56,20 +64,32 @@ const AddYarnForm = ({ onClose }: { onClose: () => void }) => {
         setPurchaseData((prev) => ({ ...prev, [name]: value }));
     };
 
+    const validateFiberContent = () => {
+        const totalPercentage = yarnData.fiber_content.reduce(
+            (sum, fiber) => sum + fiber.percentage,
+            0
+        );
+        if (totalPercentage !== 100) {
+            setFiberError(`Fiber content percentages must add up to 100%. Current total: ${totalPercentage}%.`);
+            return false;
+        }
+        setFiberError(null);
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+    
+        if (isSubmitting) return;
 
-        if (isSubmitting) {
-            console.warn("Form already submitted, skipping...");
-            return;
-        }
-
+        if (!validateFiberContent()) return;
+    
         setIsSubmitting(true);
-
+    
         try {
             const calculatedRemainingYards = purchaseData.quantity * yarnData.yards_per_ball;
             const calculatedTotalSpent = purchaseData.quantity * purchaseData.cost_per_ball;
-
+    
             const yarn = {
                 ...yarnData,
                 fiber_content: yarnData.fiber_content.map((fiber) => ({
@@ -81,26 +101,33 @@ const AddYarnForm = ({ onClose }: { onClose: () => void }) => {
                 total_spent: calculatedTotalSpent,
                 purchase_ids: [],
             };
-
-            const yarnRef = await addYarnToInventory(yarn);
-
-            const purchase = {
-                yarn_id: yarnRef.id,
+    
+            // Add yarn to inventory
+            const addedYarn = await addYarnToInventory(yarn);
+    
+            // Ensure that addedYarn.id is defined
+            if (!addedYarn.id) {
+                throw new Error("Failed to retrieve yarn ID after adding to inventory.");
+            }
+    
+            const purchase: YarnPurchase = {
+                yarn_id: addedYarn.id, // Assert that addedYarn.id is defined
                 quantity: purchaseData.quantity,
                 cost_per_ball: purchaseData.cost_per_ball,
                 total_cost: calculatedTotalSpent,
                 date_purchased: new Date(purchaseData.date_purchased),
             };
-
-            await addPurchaseAndLink(yarnRef.id, purchase);
-
+    
+            await addPurchaseAndLink(addedYarn.id, purchase);
+    
+            onYarnAdded(); // Trigger refresh
             onClose();
         } catch (error) {
             console.error("Error in handleSubmit:", error);
         } finally {
             setIsSubmitting(false);
         }
-    };
+    };    
 
     return (
         <Box
@@ -196,6 +223,14 @@ const AddYarnForm = ({ onClose }: { onClose: () => void }) => {
             >
                 Fiber Content
             </Typography>
+            {fiberError && (
+                <Typography
+                    variant="body2"
+                    sx={{ color: "red", mb: 2 }}
+                >
+                    {fiberError}
+                </Typography>
+            )}
             {yarnData.fiber_content.map((fiber, index) => (
                 <Box key={index} sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField

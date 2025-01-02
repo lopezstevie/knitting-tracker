@@ -1,31 +1,17 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import AddYarnModal from "./AddYarnModal";
 
 const Navigation = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const handleOpenModal = () => {
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-    };
-
     return (
-        <nav>
-            <ul>
+        <nav style={{ padding: "1rem", backgroundColor: "#FFEBF1", display: "flex", justifyContent: "space-between" }}>
+            <ul style={{ display: "flex", gap: "1rem", listStyleType: "none", margin: 0 }}>
                 <li>
                     <Link href="/">Home</Link>
                 </li>
                 <li>
-                    <button onClick={handleOpenModal}>Add Yarn</button>
+                    <Link href="/yarn-inventory">Yarn Inventory</Link>
                 </li>
             </ul>
-            {isModalOpen && <AddYarnModal open={isModalOpen} onClose={handleCloseModal} />}
         </nav>
     );
 };
