@@ -61,7 +61,7 @@ The Yarn Inventory feature allows users to manage their yarn collection and purc
    - Add a search bar to quickly find specific yarn entries.
 
 ## Progress
-- [ ] Set up Firestore collection for storing yarn data (`yarn_inventory`) and purchase history (`yarn_purchases`).
+- [x] Set up Firestore collection for storing yarn data (`yarn_inventory`) and purchase history (`yarn_purchases`).
 - [ ] Implement "Add Yarn" form with purchase history logging.
 - [ ] Create "View Yarn Inventory" UI with total cost calculations.
 - [ ] Enable updating yarn usage and purchase history.
@@ -80,11 +80,12 @@ Each document in the collection will represent a yarn entry and include the foll
 | `weight`         | `string`  | Yarn weight (e.g., DK, Worsted)          |
 | `fiber_content`  | `array`   | Array of objects representing fiber types|
 | `yards_per_ball` | `number`  | Yards in a single ball                   |
+| `total_yards_used`| `number`  | Calculated field: Total yards used of the yarn|
 | `remaining_yards`| `number`  | Yards of yarn remaining after usage      |
 | `number_of_balls`| `number`  | Calculated field: Remaining Balls of Yarn|
 | `cost_per_ball`  | `number`  | Cost per ball of yarn                    |
 | `total_spent`    | `number`  | Total spent on this yarn                 |
-| `date_purchased` | `timestamp`| Date the yarn was purchased              |
+| `purchase_ids`   | `array`   | Array of IDs associated in `yarn_purchases`|
 
 #### Fiber Content Field Format
 The `fiber_content` field will store an array of objects. Each object will include:
