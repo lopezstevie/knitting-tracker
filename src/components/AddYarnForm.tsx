@@ -1,35 +1,26 @@
-"use client";
-
 import React, { useState } from "react";
+import {
+    TextField,
+    Button,
+    Typography,
+    Box,
+    IconButton,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import { addYarnToInventory, addPurchaseAndLink } from "@/services/inventoryService";
 
-interface FiberContent {
-    fiber: string;
-    percentage: number;
-}
+const AddYarnForm = ({ onClose }: { onClose: () => void }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-const AddYarnForm = () => {
-    const [yarnData, setYarnData] = useState<{
-        brand: string;
-        name: string;
-        color: string;
-        weight: string;
-        fiber_content: FiberContent[];
-        yards_per_ball: number;
-        remaining_yards: number;
-        total_yards_used: number;
-        total_spent: number;
-    }>({
+    const [yarnData, setYarnData] = useState({
         brand: "",
         name: "",
         color: "",
         weight: "",
-        fiber_content: [],
+        fiber_content: [{ fiber: "", percentage: 0 }],
         yards_per_ball: 0,
-        remaining_yards: 0,
-        total_yards_used: 0,
-        total_spent: 0,
-    });    
+    });
 
     const [purchaseData, setPurchaseData] = useState({
         quantity: 0,
@@ -37,38 +28,32 @@ const AddYarnForm = () => {
         date_purchased: "",
     });
 
-    const [newFiber, setNewFiber] = useState<FiberContent>({ fiber: "", percentage: 0 });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const addFiber = () => {
-        if (!newFiber.fiber || newFiber.percentage <= 0 || newFiber.percentage > 100) {
-            alert("Please enter a valid fiber and percentage (1-100).");
-            return;
-        }
-    
-        setYarnData((prev) => ({
-            ...prev,
-            fiber_content: [...prev.fiber_content, { ...newFiber }],
-        }));
-    
-        // Clear the temporary input fields
-        setNewFiber({ fiber: "", percentage: 0 });
-    };    
-
     const handleYarnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
+        setYarnData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleFiberChange = (index: number, field: string, value: string | number) => {
+        const updatedFiberContent = [...yarnData.fiber_content];
+        updatedFiberContent[index] = { ...updatedFiberContent[index], [field]: value };
+        setYarnData((prev) => ({ ...prev, fiber_content: updatedFiberContent }));
+    };
+
+    const addFiberField = () => {
         setYarnData((prev) => ({
             ...prev,
-            [name]: ["yards_per_ball"].includes(name) ? Number(value) : value,
+            fiber_content: [...prev.fiber_content, { fiber: "", percentage: 0 }],
         }));
+    };
+
+    const removeFiberField = (index: number) => {
+        const updatedFiberContent = yarnData.fiber_content.filter((_, i) => i !== index);
+        setYarnData((prev) => ({ ...prev, fiber_content: updatedFiberContent }));
     };
 
     const handlePurchaseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setPurchaseData((prev) => ({
-            ...prev,
-            [name]: ["quantity", "cost_per_ball"].includes(name) ? Number(value) : value,
-        }));
+        setPurchaseData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -82,27 +67,34 @@ const AddYarnForm = () => {
         setIsSubmitting(true);
 
         try {
+            const calculatedRemainingYards = purchaseData.quantity * yarnData.yards_per_ball;
+            const calculatedTotalSpent = purchaseData.quantity * purchaseData.cost_per_ball;
+
             const yarn = {
                 ...yarnData,
+                fiber_content: yarnData.fiber_content.map((fiber) => ({
+                    fiber: fiber.fiber,
+                    percentage: fiber.percentage,
+                })),
                 total_yards_used: 0,
-                remaining_yards: Number(purchaseData.quantity) * Number(yarnData.yards_per_ball),
-                total_spent: Number(purchaseData.quantity) * Number(purchaseData.cost_per_ball),
+                remaining_yards: calculatedRemainingYards,
+                total_spent: calculatedTotalSpent,
                 purchase_ids: [],
             };
 
-            console.log("Submitting Yarn Data:", yarn);
             const yarnRef = await addYarnToInventory(yarn);
 
             const purchase = {
                 yarn_id: yarnRef.id,
-                quantity: Number(purchaseData.quantity),
-                cost_per_ball: Number(purchaseData.cost_per_ball),
-                total_cost: Number(purchaseData.quantity) * Number(purchaseData.cost_per_ball),
+                quantity: purchaseData.quantity,
+                cost_per_ball: purchaseData.cost_per_ball,
+                total_cost: calculatedTotalSpent,
                 date_purchased: new Date(purchaseData.date_purchased),
             };
 
-            console.log("Submitting Purchase Data:", purchase);
             await addPurchaseAndLink(yarnRef.id, purchase);
+
+            onClose();
         } catch (error) {
             console.error("Error in handleSubmit:", error);
         } finally {
@@ -111,78 +103,230 @@ const AddYarnForm = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <h3>Add New Yarn</h3>
-            <div>
-                <label>Brand:</label>
-                <input type="text" name="brand" value={yarnData.brand} onChange={handleYarnChange} required />
-            </div>
-            <div>
-                <label>Name:</label>
-                <input type="text" name="name" value={yarnData.name} onChange={handleYarnChange} required />
-            </div>
-            <div>
-                <label>Color:</label>
-                <input type="text" name="color" value={yarnData.color} onChange={handleYarnChange} required />
-            </div>
-            <div>
-                <label>Weight:</label>
-                <input type="text" name="weight" value={yarnData.weight} onChange={handleYarnChange} required />
-            </div>
-            <div>
-                <label>Fiber Content:</label>
-                <div>
-                    <label>Fiber Name:</label>
-                    <input
-                        type="text"
-                        name="fiber"
-                        value={newFiber.fiber}
-                        onChange={(e) => setNewFiber({ ...newFiber, fiber: e.target.value })}
-                        required={yarnData.fiber_content.length === 0} // Required only if no fibers added
+        <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+                p: 4,
+                background: "#F8F8FF", // Soft lavender background
+                borderRadius: 4,
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                maxWidth: 500,
+                margin: "auto",
+                fontFamily: "'Poppins', sans-serif",
+                border: "2px solid #EAEAEA", // Subtle border
+            }}
+        >
+            <Typography
+                variant="h5"
+                sx={{
+                    mb: 3,
+                    textAlign: "center",
+                    fontWeight: 600,
+                    color: "#6A5ACD", // Lavender text
+                }}
+            >
+                Add New Yarn
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+                <TextField
+                    label="Brand"
+                    name="brand"
+                    value={yarnData.brand}
+                    onChange={handleYarnChange}
+                    fullWidth
+                    required
+                    sx={{
+                        mb: 2,
+                        "& .MuiOutlinedInput-root": {
+                            background: "#FFF5E1", // Pastel yellow
+                        },
+                    }}
+                />
+                <TextField
+                    label="Name"
+                    name="name"
+                    value={yarnData.name}
+                    onChange={handleYarnChange}
+                    fullWidth
+                    required
+                    sx={{
+                        mb: 2,
+                        "& .MuiOutlinedInput-root": {
+                            background: "#EAF8FF", // Pastel blue
+                        },
+                    }}
+                />
+                <TextField
+                    label="Color"
+                    name="color"
+                    value={yarnData.color}
+                    onChange={handleYarnChange}
+                    fullWidth
+                    required
+                    sx={{
+                        mb: 2,
+                        "& .MuiOutlinedInput-root": {
+                            background: "#FFE4E1", // Pastel coral
+                        },
+                    }}
+                />
+                <TextField
+                    label="Weight"
+                    name="weight"
+                    value={yarnData.weight}
+                    onChange={handleYarnChange}
+                    fullWidth
+                    required
+                    sx={{
+                        "& .MuiOutlinedInput-root": {
+                            background: "#E1FFF6", // Pastel mint
+                        },
+                    }}
+                />
+            </Box>
+
+            <Typography
+                variant="subtitle1"
+                gutterBottom
+                sx={{
+                    fontWeight: 500,
+                    color: "#FF6F61", // Coral
+                }}
+            >
+                Fiber Content
+            </Typography>
+            {yarnData.fiber_content.map((fiber, index) => (
+                <Box key={index} sx={{ display: "flex", gap: 2, mb: 2 }}>
+                    <TextField
+                        label="Fiber Name"
+                        value={fiber.fiber}
+                        onChange={(e) => handleFiberChange(index, "fiber", e.target.value)}
+                        fullWidth
+                        required
+                        sx={{
+                            "& .MuiOutlinedInput-root": {
+                                background: "#FFF5E1", // Light yellow
+                            },
+                        }}
                     />
-                </div>
-                <div>
-                    <label>Percentage:</label>
-                    <input
+                    <TextField
+                        label="Percentage"
+                        value={fiber.percentage}
                         type="number"
-                        name="percentage"
-                        value={newFiber.percentage}
-                        onChange={(e) => setNewFiber({ ...newFiber, percentage: Number(e.target.value) })}
-                        required={yarnData.fiber_content.length === 0} // Required only if no fibers added
+                        onChange={(e) => handleFiberChange(index, "percentage", Number(e.target.value))}
+                        fullWidth
+                        required
+                        sx={{
+                            "& .MuiOutlinedInput-root": {
+                                background: "#FCEEFF", // Light lavender
+                            },
+                        }}
                     />
-                </div>
-                <button type="button" onClick={addFiber}>
-                    Add Fiber
-                </button>
-                <ul>
-                    {yarnData.fiber_content.map((fiber, index) => (
-                        <li key={index}>
-                            {fiber.fiber}: {fiber.percentage}%
-                        </li>
-                    ))}
-                </ul>
-            </div>
-            <div>
-                <label>Yards per Ball:</label>
-                <input type="number" name="yards_per_ball" value={yarnData.yards_per_ball} onChange={handleYarnChange} required />
-            </div>
-            <h3>Initial Purchase</h3>
-            <div>
-                <label>Quantity:</label>
-                <input type="number" name="quantity" value={purchaseData.quantity} onChange={handlePurchaseChange} required />
-            </div>
-            <div>
-                <label>Cost per Ball:</label>
-                <input type="number" name="cost_per_ball" value={purchaseData.cost_per_ball} onChange={handlePurchaseChange} required />
-            </div>
-            <div>
-                <label>Date Purchased:</label>
-                <input type="date" name="date_purchased" value={purchaseData.date_purchased} onChange={handlePurchaseChange} required />
-            </div>
-            <button type="submit" disabled={isSubmitting}>
+                    <IconButton
+                        onClick={() => removeFiberField(index)}
+                        disabled={yarnData.fiber_content.length === 1} // Disable if only one fiber
+                        sx={{ color: "#FF6F61" }}
+                    >
+                        <RemoveIcon />
+                    </IconButton>
+                    <IconButton
+                        onClick={addFiberField}
+                        sx={{ color: "#FFD700" }}
+                    >
+                        <AddIcon />
+                    </IconButton>
+                </Box>
+            ))}
+
+            <TextField
+                label="Yards per Ball"
+                name="yards_per_ball"
+                value={yarnData.yards_per_ball}
+                onChange={handleYarnChange}
+                type="number"
+                fullWidth
+                required
+                sx={{
+                    mt: 2,
+                    "& .MuiOutlinedInput-root": {
+                        background: "#EAF8FF", // Light blue
+                    },
+                }}
+            />
+
+            <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ mt: 3, fontWeight: 500, color: "#6A5ACD" }}
+            >
+                Initial Purchase
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                <TextField
+                    label="Quantity"
+                    name="quantity"
+                    value={purchaseData.quantity}
+                    onChange={handlePurchaseChange}
+                    type="number"
+                    fullWidth
+                    required
+                    sx={{
+                        "& .MuiOutlinedInput-root": {
+                            background: "#FFF5E1", // Light yellow
+                        },
+                    }}
+                />
+                <TextField
+                    label="Cost per Ball"
+                    name="cost_per_ball"
+                    value={purchaseData.cost_per_ball}
+                    onChange={handlePurchaseChange}
+                    type="number"
+                    fullWidth
+                    required
+                    sx={{
+                        "& .MuiOutlinedInput-root": {
+                            background: "#FCEEFF", // Light lavender
+                        },
+                    }}
+                />
+            </Box>
+            <TextField
+                label="Date Purchased"
+                name="date_purchased"
+                value={purchaseData.date_purchased}
+                onChange={handlePurchaseChange}
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                required
+                sx={{
+                    mb: 3,
+                    "& .MuiOutlinedInput-root": {
+                        background: "#E1FFF6", // Light mint
+                    },
+                }}
+            />
+
+            <Button
+                variant="contained"
+                fullWidth
+                type="submit"
+                disabled={isSubmitting}
+                sx={{
+                    backgroundColor: "#FF6F61",
+                    color: "white",
+                    fontWeight: 600,
+                    padding: "10px",
+                    "&:hover": {
+                        backgroundColor: "#FF867F",
+                    },
+                }}
+            >
                 {isSubmitting ? "Adding Yarn..." : "Add Yarn"}
-            </button>
-        </form>
+            </Button>
+        </Box>
     );
 };
 

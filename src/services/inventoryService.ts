@@ -8,6 +8,7 @@ import { YarnPurchase } from '@/models/YarnPurchase';
  */
 export const addYarnToInventory = async (yarn: YarnInventory) => {
     try {
+        console.log("Submitting Yarn Data:", yarn);
         // Add the yarn to the Firestore `yarn_inventory` collection
         const docRef = await addDoc(collection(db, "yarn_inventory"), yarn);
 
