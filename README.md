@@ -62,7 +62,7 @@ The Yarn Inventory feature allows users to manage their yarn collection and purc
 
 ## Progress
 - [x] Set up Firestore collection for storing yarn data (`yarn_inventory`) and purchase history (`yarn_purchases`).
-- [ ] Implement "Add Yarn" form with purchase history logging.
+- [x] Implement "Add Yarn" form with purchase history logging.
 - [ ] Create "View Yarn Inventory" UI with total cost calculations.
 - [ ] Enable updating yarn usage and purchase history.
 - [ ] Add functionality to delete yarn entries and purchase logs.
